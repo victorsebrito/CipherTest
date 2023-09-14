@@ -1,5 +1,4 @@
 using System.Net.Security;
-using System.Security.Authentication;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,20 +9,16 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+var cipherSuites = builder.Configuration.GetSection("TlsCipherSuites").Get<List<TlsCipherSuite>>();
+var cipherSuitesPolicy = new CipherSuitesPolicy(cipherSuites);
+
 builder.WebHost.ConfigureKestrel(kestrel =>
 {
     kestrel.ConfigureHttpsDefaults(https =>
     {
         https.OnAuthenticate = (connContext, authOptions) =>
         {
-            var ciphers = new List<TlsCipherSuite>()
-                {
-                  TlsCipherSuite.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-                  TlsCipherSuite.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-                };
-
-            authOptions.EnabledSslProtocols = SslProtocols.Tls12;
-            authOptions.CipherSuitesPolicy = new CipherSuitesPolicy(ciphers);
+            authOptions.CipherSuitesPolicy = cipherSuitesPolicy;
         };
     });
 });
